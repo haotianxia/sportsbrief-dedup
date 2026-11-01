@@ -1,0 +1,45 @@
+_ > nanoagent.plugin.v0001.ManifestConfig:
+id: sportsbrief-dedup
+name: Near-Duplicate Report Filter
+version: 0.1.0
+status: ready
+spec: nanoagent.plugin/v0001
+
+runtime > nanoagent.plugin.v0001.RuntimeConfig:
+  type: mcp_stdio
+  command: [uv, run, --frozen, python, -m, plugin]
+
+permissions > nanoagent.plugin.v0001.PermissionsConfig:
+  network > nanoagent.plugin.v0001.NetworkConfig:
+    hosts: []
+  filesystem > nanoagent.plugin.v0001.FilesystemConfig:
+    write: [workspace]
+
+# One entry per contract.Tool; its input and output classes are contract.TOOLS's.
+tools > dict[contract.Tool, nanoagent.plugin.v0001.ToolConfig]:
+  pin_duplicates:
+    description: Pin the task's answer key, the bundled corpus with every pair's exact similarity, and the redundant and kept reports the near-duplicate rules give at the task's shingle size and threshold
+  list_reports:
+    description: List a bundled corpus of short sports reports, in publication order, with the corpus's sha256
+  compare_reports:
+    description: Compare every pair of reports of a corpus at a shingle size, giving each pair's word-shingle Jaccard similarity in percent (truncated to 4 decimals) and whether both texts carry the same numbers; records the corpus it read under dedup/ in the workspace
+
+# One entry per contract.Task; its input class is contract.TASKS's.
+tasks > dict[contract.Task, nanoagent.plugin.v0001.TaskConfig]:
+  filter-duplicates:
+    description: Find the reports of a corpus that are redundant copies of an earlier report, near-duplicates by word-shingle Jaccard similarity that carry the same numbers, and say which report each one duplicates
+    runner: agent
+    tools: [compare_reports]
+    reference: pin_duplicates
+    instructions: |-
+      Plan. Exactly two tool calls: (1) compare_reports once, with the task's corpus and shingle_size exactly as given; (2) submit. Judge every pair from compare_reports's answer alone: never recompute a similarity.
+      Near-duplicates. A pair is a near-duplicate when both hold: its similarity_percent is at least min_similarity_percent, compared as the numbers are given (50.0 is at least 50; 49.9999 is not), and its same_numbers is true (when the numbers in the two texts differ, a score, date or count changed, so that pair is not a near-duplicate; the later report can still be redundant through another pair with an earlier report).
+      Redundant reports. compare_reports lists the reports in publication order (by published time, then id) and every pair as first (the earlier report) and second (the later). A report is redundant when it is the second of at least one near-duplicate pair; its duplicate_of is the first of the earliest such pair (the first-listed report among its partners), and its similarity_percent is that pair's similarity_percent, copied exactly as given, never rounded. Every report that is the second of no near-duplicate pair is kept.
+      Submit. corpus, shingle_size and min_similarity_percent exactly as given; redundant, one entry per redundant report in publication order ([] for none); kept, every other report's id in publication order. Every report appears exactly once, in redundant or in kept. Reason briefly: one short line per pair that qualifies, no prose.
+  list-reports:
+    description: List a bundled corpus of short sports reports, in publication order, so a person can read what the filter judges
+    runner: tool
+    tools: [list_reports]
+    reference: null
+    instructions: |-
+      Call list_reports with the corpus (week-01, week-02 or week-03). Use it when the person wants to read the reports themselves; the filter-duplicates task judges them.

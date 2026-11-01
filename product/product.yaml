@@ -1,0 +1,13 @@
+_ > nanoagent.plugin.v0001.ProductConfig:
+tagline: "Drop the reports that only repeat an earlier one, and keep every one that changes a fact"
+summary: "Give it a week of short sports reports, a shingle size and a similarity threshold. The agent reads every pair's exact word-shingle Jaccard similarity, keeps apart any pair whose numbers differ (a corrected score, an added stat, a new date), and submits which reports are redundant copies of an earlier report and which are kept. The check re-derives every pair from the very corpus the agent read and judges the submission on 11 constraints, each shown with what was expected and found."
+highlights:
+  - "Three bundled corpora of fictional league reports: syndicated copies, light rewrites, corrected scores and unrelated stories"
+  - "Exact similarities: Jaccard on word shingles, computed as fractions and truncated, never rounded, so a pair at exactly the threshold counts"
+  - "A changed number keeps a pair apart, however similar the texts: a corrected score is never merged into the original"
+  - "Every verdict lists its 11 checks, the expected answer, and a partial score when the filter was close"
+steps:
+  - "Ask for a corpus (week-01, week-02 or week-03), a shingle size (1 to 5) and a threshold in percent"
+  - "The agent compares every pair in one call, judges each pair against the threshold and the numbers rule, and submits"
+  - "Read which reports were dropped, which report each one repeats, their similarity, and every check of the verdict"
+  - "Ask to list a corpus to read the reports yourself"
